@@ -21,6 +21,11 @@ const layerMeta = {
     title: "Layer 04 - Infrastructure",
     goal: "Technical Details",
     objective: "JPA/Hibernate persistence, SQL, and configuration."
+  },
+  common: {
+    title: "Shared Kernel / Common",
+    goal: "Cross-Cutting Concerns",
+    objective: "Logging, Security, and shared utilities used by all layers."
   }
 };
 
@@ -28,7 +33,8 @@ const layerBadges = {
   presentation: "L1",
   application: "L2",
   domain: "L3",
-  infrastructure: "L4"
+  infrastructure: "L4",
+  common: "SK"
 };
 
 const nLayeredTree: ProjectTreeNode[] = [
@@ -95,40 +101,20 @@ const nLayeredTree: ProjectTreeNode[] = [
       {
         id: "application",
         name: "application",
-        subtitle: "(Use Cases, Services)",
+        subtitle: "(Use Cases)",
         kind: "folder",
         icon: "app",
         layer: "application",
-        description: "Use case orchestration layer.",
-        resources: ["service", "usecase"],
+        description: "Orchestrates business use cases without technical logic.",
+        resources: ["usecase"],
         children: [
-          {
-            id: "application-service",
-            name: "service",
-            kind: "folder",
-            icon: "package",
-            layer: "application",
-            description: "Application services.",
-            resources: ["OrderService.java"],
-            children: [
-              {
-                id: "order-service",
-                name: "OrderService.java",
-                kind: "file",
-                icon: "java",
-                layer: "application",
-                description: "Orchestrates the CreateOrder use case.",
-                resources: ["@Service", "transactions"]
-              }
-            ]
-          },
           {
             id: "application-usecase",
             name: "usecase",
             kind: "folder",
             icon: "package",
             layer: "application",
-            description: "Explicit use cases.",
+            description: "Explicit use case implementation.",
             resources: ["CreateOrderUseCase.java"],
             children: [
               {
@@ -137,8 +123,8 @@ const nLayeredTree: ProjectTreeNode[] = [
                 kind: "file",
                 icon: "java",
                 layer: "application",
-                description: "Order creation use case.",
-                resources: ["application logic"]
+                description: "Coordinates domain entities and infrastructure.",
+                resources: ["@Service", "transactions"]
               }
             ]
           }
@@ -276,6 +262,58 @@ const nLayeredTree: ProjectTreeNode[] = [
             ]
           }
         ]
+      },
+      {
+        id: "common",
+        name: "common",
+        subtitle: "(Shared Kernel)",
+        kind: "folder",
+        icon: "package",
+        layer: "common",
+        description: "Cross-cutting concerns and global utilities.",
+        resources: ["logging", "security", "exception"],
+        children: [
+          {
+            id: "common-logging",
+            name: "logging",
+            kind: "folder",
+            icon: "package",
+            layer: "common",
+            description: "Custom logging aspect.",
+            resources: ["LogAspect.java"],
+            children: [
+              {
+                id: "log-aspect",
+                name: "LogAspect.java",
+                kind: "file",
+                icon: "java",
+                layer: "common",
+                description: "AOP logging for all layers.",
+                resources: ["@Aspect"]
+              }
+            ]
+          },
+          {
+            id: "common-exception",
+            name: "exception",
+            kind: "folder",
+            icon: "package",
+            layer: "common",
+            description: "Global exception handling.",
+            resources: ["GlobalExceptionHandler.java"],
+            children: [
+              {
+                id: "global-handler",
+                name: "GlobalExceptionHandler.java",
+                kind: "file",
+                icon: "java",
+                layer: "common",
+                description: "Maps internal errors to API responses.",
+                resources: ["@ControllerAdvice"]
+              }
+            ]
+          }
+        ]
       }
     ]
   }
@@ -286,13 +324,13 @@ export const nLayeredPattern: PatternDefinition = {
   name: "N-Layered Architecture",
   tag: "Classic Layered",
   summary:
-    "Horizontal layers in Java where each layer depends only on the one immediately below it.",
+    "A modern Domain-Driven approach to layering where the Domain Core is protected and dependencies flow towards it or downwards.",
   pros: [
     "Traditional CRUD systems and small/medium backends.",
     "Teams requiring a quick-to-understand and maintainable structure."
   ],
   cons: [
-    "Risk of anemic domain logic if growth is not controlled.",
+    "Risk of weak domain logic if growth is not controlled.",
     "High coupling if upper layers bypass levels unnecessarily."
   ],
   nodes: ["Presentation", "Application", "Domain", "Infrastructure"],
@@ -307,7 +345,6 @@ export const nLayeredPattern: PatternDefinition = {
       "presentation-controller": true,
       "presentation-dto": true,
       application: true,
-      "application-service": true,
       "application-usecase": true,
       domain: true,
       "domain-model": true,
@@ -315,9 +352,41 @@ export const nLayeredPattern: PatternDefinition = {
       "domain-exception": true,
       infrastructure: true,
       "infra-persistence": true,
-      "infra-config": true
+      "infra-config": true,
+      common: true
     },
     layerBadges,
     layerMeta
+  },
+  diagram: {
+    type: "layered",
+    layers: [
+      { id: "presentation", name: "Presentation", description: "UI & Controllers" },
+      { id: "application", name: "Application", description: "Explicit Use Cases" },
+      { id: "domain", name: "Domain", description: "The Pure Business Heart" },
+      { id: "infrastructure", name: "Infrastructure", description: "Technical Details" },
+      { id: "common", name: "Common", description: "Cross-Cutting Kernel" }
+    ],
+    connections: [
+      { from: "presentation", to: "application" },
+      { from: "application", to: "domain" },
+      { from: "infrastructure", to: "domain" },
+      { from: "presentation", to: "common" },
+      { from: "application", to: "common" },
+      { from: "infrastructure", to: "common" },
+      { from: "domain", to: "common" }
+    ]
+  },
+  dependencies: {
+    layers: ["Presentation", "Application", "Domain", "Infrastructure", "Common"],
+    rules: [
+      { from: "Presentation", to: "Application", status: "allowed", reason: "Standard downward flow." },
+      { from: "Application", to: "Domain", status: "allowed", reason: "Use Cases orchestrate Entities." },
+      { from: "Infrastructure", to: "Domain", status: "allowed", reason: "Dependency Inversion: Adapters implement Core ports." },
+      { from: "*", to: "Common", status: "allowed", reason: "The shared kernel is accessible globally." },
+      { from: "Domain", to: "Presentation", status: "forbidden", reason: "Business logic must not know about UI." },
+      { from: "Domain", to: "Infrastructure", status: "forbidden", reason: "Business logic must be framework-free." },
+      { from: "Presentation", to: "Infrastructure", status: "forbidden", reason: "Should skip layers unnecessarily." }
+    ]
   }
 };

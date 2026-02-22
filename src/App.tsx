@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { ProjectTreeExplorer } from "./components/ProjectTreeExplorer";
+import { PatternDiagram } from "./components/PatternDiagram";
+import { DependenciesView } from "./components/DependenciesView";
 import { patterns, type PatternId } from "./patterns";
 
 function App() {
   const [activeId, setActiveId] = useState<PatternId>("n-layered");
-  const [activeTab, setActiveTab] = useState<"explorer" | "diagram" | "dependencies" | "tests">("explorer");
+  const [activeTab, setActiveTab] = useState<"explorer" | "diagram" | "dependencies">("explorer");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   const active = useMemo(
@@ -68,6 +70,7 @@ function App() {
                     {pattern.id === "microservices" && "M"}
                     {pattern.id === "eda" && "E"}
                     {pattern.id === "cqrs" && "C"}
+                    {pattern.id === "vertical-slices" && "V"}
                   </span>
                   <span>{pattern.name}</span>
                 </button>
@@ -115,15 +118,6 @@ function App() {
               </svg>
               Dependencies
             </button>
-            <button
-              className={activeTab === "tests" ? "tab active" : "tab"}
-              onClick={() => setActiveTab("tests")}
-            >
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style={{ marginRight: '8px', opacity: 0.8 }}>
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-              </svg>
-              Tests
-            </button>
           </div>
 
           <div className="tab-container">
@@ -146,11 +140,11 @@ function App() {
 
               </>
             )}
-            {activeTab !== "explorer" && (
-              <div className="placeholder-view">
-                <h3>{activeTab.toUpperCase()} VIEW</h3>
-                <p>This view will be implemented in the next iteration.</p>
-              </div>
+            {activeTab === "diagram" && (
+              <PatternDiagram pattern={active} />
+            )}
+            {activeTab === "dependencies" && (
+              <DependenciesView pattern={active} />
             )}
           </div>
         </main>
